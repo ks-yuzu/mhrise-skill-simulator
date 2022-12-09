@@ -66,21 +66,17 @@
   let currentEnhancements = []
 
   const simulationParams = {
-    weapon: {attack: 330, element: 42},
-    sharpness: SHARPNESS.none,
-    motion: {
-      motionValue:     10,
-      elementModifier: 1,
-    },
-    enhancements: [],
+    weapon:                {attack: 330, element: 42, affinity: 0},
+    sharpness:             SHARPNESS.none,
+    motion:                {motionValue: 10, elementModifier: 1},
+    enhancements:          [],
     monsterPartMultiplier: {physical: 55, elemental: 25},
   }
   let sim
   let expectedDamage = 0
   $: { // Enhancement 以外の更新
-    const input = Object.assign({}, simulationParams)
-    console.log({input})
-    sim = new DamageSimulator(input)
+ // sim = new DamageSimulator(_.cloneDeep(simulationParams))
+    sim = new DamageSimulator(simulationParams)
   }
   $: { // Enhancement の更新
     currentEnhancements = Object.values(selectedEnhancements).flat().filter(i => !!i)
@@ -93,7 +89,6 @@
 
   let graphData = []
   $: {
-    console.log({before: graphData})
     const serieses = []
     for (const [skillIdx, skills] of ENHANCEMENTS_MAP.get('skills').entries()) {
       const currentLevel = selectedEnhancements.skills[skillIdx]?.metadata?.level
@@ -106,7 +101,7 @@
         newEnhancementSet.skills[skillIdx] = s
         sim.setEnhancements(flatSelectedEnhancements(newEnhancementSet))
 
-        return {name: `Lv${s.metadata.level} (+${parseInt(s.metadata.level) - parseInt(currentLevel ?? '0')})`, y: sim.calc()}
+        return {name: `Lv${s.metadata.level} (+${parseInt(s.metadata.level) - parseInt(currentLevel ?? '0')})`, y: sim.calcInRealNumbers()}
       })
       if (data.length > 0) {
         data.unshift({name: `Lv${currentLevel}`, y: expectedDamage})
@@ -124,70 +119,66 @@
 </script>
 
 <div>
-  <div style="display: flex; flex-flow: wrap;">
-    <EnhancementCard category="items"
-                     enhancements={ENHANCEMENTS_MAP.get('items')}
-                     bind:value={selectedEnhancements['items']}
-                     style="flex-grow: 1;"
-                     selectorWidth="8rem"
-                     checkboxWidth={e => e.metadata.name.length < 7 ? '7rem' : ''}
-                     />
+  <div class="wrappable-flex">
+    <Card>
+      <WeaponTypeSelector bind:value={weaponType}
+                          style="width: 10rem;"
+                          />
+    </Card>
+
     <EnhancementCard category="weapons"
                      enhancements={ENHANCEMENTS_MAP.get('weapons')}
                      bind:value={selectedEnhancements['weapons']}
-                     style="flex-grow: 1000;"
                      selectorWidth="8rem"
                      checkboxWidth="8rem"
                      />
+    <EnhancementCard category="items"
+                     enhancements={ENHANCEMENTS_MAP.get('items')}
+                     bind:value={selectedEnhancements['items']}
+                     selectorWidth="8rem"
+                     checkboxWidth={e => e.metadata.name.length < 7 ? '7rem' : ''}
+                     />
   </div>
 
-  <div style="display: flex; flex-flow: wrap;">
+  <div class="wrappable-flex">
     <EnhancementCard category="rampageDecorations"
                      enhancements={ENHANCEMENTS_MAP.get('rampageDecorations')}
                      bind:value={selectedEnhancements['rampageDecorations']}
-                     style="flex-grow: 1;"
-                     selectorWidth="16rem"
+                     selectorWidth="15rem"
                      />
     <EnhancementCard category="quriousCrafts"
                      enhancements={ENHANCEMENTS_MAP.get('quriousCrafts')}
                      bind:value={selectedEnhancements['quriousCrafts']}
-                     style="flex-grow: 1000;"
                      />
     <EnhancementCard category="dango"
                      enhancements={ENHANCEMENTS_MAP.get('dango')}
                      bind:value={selectedEnhancements['dango']}
-                     style="flex-grow: 1000000;"
                      />
   </div>
 
-  <div style="display: flex; flex-flow: wrap;">
+  <div class="wrappable-flex">
     <EnhancementCard category="miscEnhancements"
                      enhancements={ENHANCEMENTS_MAP.get('miscEnhancements')}
                      bind:value={selectedEnhancements['miscEnhancements']}
-                     style="flex-grow: 1;"
+                     selectorWidth="12rem"
                      />
   </div>
 
-  <div style="display: flex; flex-flow: wrap;">
+  <div class="wrappable-flex">
     <EnhancementCard category="skills"
                      enhancements={ENHANCEMENTS_MAP.get('skills')}
                      bind:value={selectedEnhancements['skills']}
-                     style="flex-grow: 1;"
                      />
   </div>
 
-  <div style="display: flex; flex-flow: nowrap;">
+  <div class="wrappable-flex">
     <Card style="min-width: 26rem;">
       <div id="variable-area">
         <div>
-          <WeaponTypeSelector bind:value={weaponType}
-                              />
-        </div>
-
-        <div>
-          <Textfield style="width: 7rem" label="攻撃力" bind:value={simulationParams.weapon.attack}  variant="filled" />
-          <Textfield style="width: 7rem" label="属性"   bind:value={simulationParams.weapon.element} variant="filled" />
-          <Select    style="width: 7rem" label="切れ味" bind:value={simulationParams.sharpness}      variant="filled">
+          <Textfield style="width: 7rem" label="攻撃力"     type="number" bind:value={simulationParams.weapon.attack}   variant="filled" />
+          <Textfield style="width: 7rem" label="属性"       type="number" bind:value={simulationParams.weapon.element}  variant="filled" />
+          <Textfield style="width: 7rem" label="武器会心率" type="number" bind:value={simulationParams.weapon.affinity} variant="filled" />
+          <Select    style="width: 7rem" label="切れ味"     type="number" bind:value={simulationParams.sharpness}       variant="filled">
             {#each Object.keys(SHARPNESS_JP) as name}
               <Option value={name}>{SHARPNESS_JP[name]}</Option>
             {/each}
@@ -195,13 +186,13 @@
         </div>
 
         <div>
-          <Textfield style="width: 10rem" label="モーション値"       bind:value={simulationParams.motion.motionValue}     variant="filled" />
-          <Textfield style="width: 10rem" label="モーション属性補正" bind:value={simulationParams.motion.elementModifier} variant="filled" />
+          <Textfield style="width: 10rem" label="モーション値"       type="number" bind:value={simulationParams.motion.motionValue}     variant="filled" />
+          <Textfield style="width: 10rem" label="モーション属性補正" type="number" bind:value={simulationParams.motion.elementModifier} variant="filled" />
         </div>
 
         <div>
-          <Textfield style="width: 10rem" label="物理肉質" bind:value={simulationParams.monsterPartMultiplier.physical}  variant="filled" />
-          <Textfield style="width: 10rem" label="属性肉質" bind:value={simulationParams.monsterPartMultiplier.elemental} variant="filled" />
+          <Textfield style="width: 10rem" label="物理肉質" type="number" bind:value={simulationParams.monsterPartMultiplier.physical}  variant="filled" />
+          <Textfield style="width: 10rem" label="属性肉質" type="number" bind:value={simulationParams.monsterPartMultiplier.elemental} variant="filled" />
         </div>
 
         <div>
@@ -211,14 +202,14 @@
         </div>
 
         <div>
-          <Textfield style="width: 7rem" label="物理ダメージ" value={sim.physicalDamage}  variant="filled" /> +
-          <Textfield style="width: 7rem" label="属性ダメージ" value={sim.elementalDamage} variant="filled" /> =
-          <Textfield style="width: 7rem" label="合計ダメージ" value={expectedDamage}      variant="filled" />
+          <Textfield style="width: 7rem" label="物理ダメージ" value={Math.round(sim.physicalDamage)}  variant="filled" /> +
+          <Textfield style="width: 7rem" label="属性ダメージ" value={Math.round(sim.elementalDamage)} variant="filled" /> =
+          <Textfield style="width: 7rem" label="合計ダメージ" value={expectedDamage}                  variant="filled" />
         </div>
       </div>
     </Card>
 
-    <Card style="flex: 1; overflow: hidden">
+    <Card style="width: calc(100% - 34rem); min-width: 600px; overflow: hidden">
       <Highcharts series={graphData}
                   />
     </Card>
@@ -228,6 +219,28 @@
 <pre class="status">Selected: {currentEnhancements.map(i => `${i.metadata.name}${i.metadata.level !== '0' ? ':'+i.metadata.level : ''}`).join(', ')}</pre>
 
 <style>
+  :global(
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button
+  ) {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  div.wrappable-flex {
+    display: flex;
+    flex-flow: wrap;
+  }
+  :global(div.wrappable-flex > div:first-of-type) {
+    flex-grow: 1;
+  }
+  :global(div.wrappable-flex > div:nth-of-type(2)) {
+    flex-grow: 1000;
+  }
+  :global(div.wrappable-flex > div:nth-of-type(3)) {
+    flex-grow: 1000000;
+  }
+
   #variable-area > div:nth-of-type(n+2) {
     margin-top: 0.5rem;
   }

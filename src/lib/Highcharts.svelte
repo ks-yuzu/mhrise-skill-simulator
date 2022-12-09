@@ -8,6 +8,7 @@
   export let chartId: string                          = 'chart'
   export let series: {name: string, data: number[]}[] = []
 
+  let chart
   let chartWidth
   function onResize(e) {
     console.log({e})
@@ -218,7 +219,7 @@
   function draw() {
     if (typeof Highcharts.chart !== 'function') { return }
 
-    Highcharts.chart(chartId, {
+    chart = Highcharts.chart(chartId, {
       chart: {
         width: chartWidth,
       },
@@ -230,11 +231,14 @@
           text: 'ダメージ期待値',
         },
       },
-      // xAxis: {
-      //   accessibility: {
-      //     rangeDescription: 'Range: 2010 to 2020'
-      //   }
-      // },
+      xAxis: {
+        allowDecimals: false,
+        min: 0,
+        max: 7,
+        title: {
+          text: '追加スキル (Lv)',
+        },
+      },
       legend: {
         layout: 'vertical',
         align: 'right',
@@ -245,7 +249,7 @@
           label: {
             connectorAllowed: false
           },
-          // pointStart: 1
+          // pointStart: 0
         }
       },
 
