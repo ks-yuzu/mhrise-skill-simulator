@@ -21,6 +21,8 @@
   import EnhancementCheckbox       from '$lib/EnhancementCheckbox.svelte'
   import WeaponTypeSelector        from '$lib/WeaponTypeSelector.svelte'
   import {damageExpGraphSettings}  from '$lib/graph-settings'
+  import {BLADEMASTER_WEAPON_TYPES, GUNNER_WEAPON_TYPES}
+                                   from '$lib/mhrise-metadata'
 
   let weaponType = '弓'
   const enhancementReducer = (acc, cur) => {
@@ -36,9 +38,9 @@
   }
   let ENHANCEMENTS_MAP = getEnhancementMap(weaponType)
   $: {
-    console.log('here')
     ENHANCEMENTS_MAP = getEnhancementMap(weaponType)
     selectedEnhancements = getInitialSelectedEnhancements()
+    simulationParams.sharpness = BLADEMASTER_WEAPON_TYPES.includes(weaponType) ? SHARPNESS.white : SHARPNESS.none
   }
   function getEnhancementMap(weaponType: string) {
     return new Map([
@@ -74,13 +76,10 @@
   }
   let sim
   let expectedDamage = 0
-  $: { // Enhancement 以外の更新
- // sim = new DamageSimulator(_.cloneDeep(simulationParams))
-    sim = new DamageSimulator(simulationParams)
-  }
+  // Enhancement 以外の更新
+  $: sim = new DamageSimulator(simulationParams)
   $: { // Enhancement の更新
     currentEnhancements = Object.values(selectedEnhancements).flat().filter(i => !!i)
-    console.log({currentEnhancements})
     sim.setEnhancements(currentEnhancements)
     expectedDamage = sim.calc()
     sim = sim
@@ -89,6 +88,8 @@
 
   let graphData = []
   $: {
+    const expectedDamageInReal = sim.calcInRealNumbers()
+
     const serieses = []
     for (const [skillIdx, skills] of ENHANCEMENTS_MAP.get('skills').entries()) {
       const currentLevel = selectedEnhancements.skills[skillIdx]?.metadata?.level
@@ -104,7 +105,7 @@
         return {name: `Lv${s.metadata.level} (+${parseInt(s.metadata.level) - parseInt(currentLevel ?? '0')})`, y: sim.calcInRealNumbers()}
       })
       if (data.length > 0) {
-        data.unshift({name: `Lv${currentLevel}`, y: expectedDamage})
+        data.unshift({name: `Lv${currentLevel}`, y: expectedDamageInReal})
         const name = skills[0].metadata.name
         serieses.push({name, data, visible: damageExpGraphSettings.isEnabledByDefault[name] ?? true})
       }
@@ -116,6 +117,7 @@
   function flatSelectedEnhancements(selectedEnhancements: {[key: string]: Enhancement[]}) {
     return Object.values(selectedEnhancements).flat().filter(i => !!i)
   }
+
 </script>
 
 <div>
@@ -176,13 +178,15 @@
       <div id="variable-area">
         <div>
           <Textfield style="width: 7rem" label="攻撃力"     type="number" bind:value={simulationParams.weapon.attack}   variant="filled" />
-          <Textfield style="width: 7rem" label="属性"       type="number" bind:value={simulationParams.weapon.element}  variant="filled" />
+          <Textfield style="width: 7rem" label="属性値"     type="number" bind:value={simulationParams.weapon.element}  variant="filled" />
           <Textfield style="width: 7rem" label="武器会心率" type="number" bind:value={simulationParams.weapon.affinity} variant="filled" />
+          {#if BLADEMASTER_WEAPON_TYPES.includes(weaponType)}
           <Select    style="width: 7rem" label="切れ味"     type="number" bind:value={simulationParams.sharpness}       variant="filled">
             {#each Object.keys(SHARPNESS_JP) as name}
               <Option value={name}>{SHARPNESS_JP[name]}</Option>
             {/each}
           </Select>
+          {/if}
         </div>
 
         <div>
@@ -196,9 +200,14 @@
         </div>
 
         <div>
-          <Textfield style="width: 7rem" label="会心率"       value={sim.affinity}                              variant="filled" />
-          <Textfield style="width: 7rem" label="会心倍率"     value={1 + sim.physicalCriticalDamageMultiplier}  variant="filled" />
-          <Textfield style="width: 7rem" label="属性会心倍率" value={1 + sim.elementalCriticalDamageMultiplier} variant="filled" />
+          <Textfield style="width: 7rem" label="実質攻撃力" value={'-'} variant="filled" disabled/>
+          <Textfield style="width: 7rem" label="実質属性値" value={'-'} variant="filled" disabled/>
+          <Textfield style="width: 7rem" label="実質会心率" value={sim.affinity}                              variant="filled" />
+        </div>
+
+        <div>
+          <Textfield style="width: 10rem" label="会心倍率"     value={1 + sim.physicalCriticalDamageMultiplier}  variant="filled" />
+          <Textfield style="width: 10rem" label="属性会心倍率" value={1 + sim.elementalCriticalDamageMultiplier} variant="filled" />
         </div>
 
         <div>
@@ -211,12 +220,17 @@
 
     <Card style="width: calc(100% - 34rem); min-width: 600px; overflow: hidden">
       <Highcharts series={graphData}
+                  onClick={(x, y, pointName, seriesName) => {
+                    const skill = seriesName
+                    const level = pointName.replace(/Lv(\w)\s+\(.*\)/, '$1')
+                    console.log({skill, level})
+                  }}
                   />
     </Card>
   </div>
 </div>
 
-<pre class="status">Selected: {currentEnhancements.map(i => `${i.metadata.name}${i.metadata.level !== '0' ? ':'+i.metadata.level : ''}`).join(', ')}</pre>
+<!-- <pre class="status">Selected: {currentEnhancements.map(i => `${i.metadata.name}${i.metadata.level !== '0' ? ':'+i.metadata.level : ''}`).join(', ')}</pre> -->
 
 <style>
   :global(
@@ -241,10 +255,10 @@
     flex-grow: 1000000;
   }
 
-  #variable-area > div:nth-of-type(n+2) {
+  #variable-area > div {
     margin-top: 0.5rem;
   }
-  #variable-area > div:nth-last-of-type(2) {
+  #variable-area > div:nth-last-of-type(3) {
     margin-top: 1.5rem;
   }
   :global(#variable-area > div > .mdc-select) {

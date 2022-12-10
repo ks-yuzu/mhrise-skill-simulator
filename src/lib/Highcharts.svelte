@@ -1,5 +1,5 @@
 <script lang="ts">
-  import {afterUpdate}   from "svelte"
+  import {onMount, afterUpdate}   from "svelte"
   import {debounce}      from 'lodash'
   import * as Highcharts from 'highcharts'
   // https://api.highcharts.com/highcharts/
@@ -7,18 +7,18 @@
 
   export let chartId: string                          = 'chart'
   export let series: {name: string, data: number[]}[] = []
+  export let onClick: (x: number, y: number, pointName: string, seriesName: string) => void
 
   let chart
   let chartWidth
-  function onResize(e) {
-    console.log({e})
-    chartWidth = e.target.clientWidth
-    draw()
-  }
+  // let isSeriesVisible: {[key: string]: boolean} = {}
+  let isSeriesVisible: number
+  $: console.log({isSeriesVisible})
 
+  onMount(() => init())
   afterUpdate(() => {
-    init()
-    draw()
+    if (chart == null) { draw() }
+    else               { updateSeries() }
   })
 
   function init() {
@@ -249,7 +249,20 @@
           label: {
             connectorAllowed: false
           },
-          // pointStart: 0
+          events: {
+            click: (e) => {
+              console.log(e)
+              onClick(e.point.x, e.point.y, e.point.name, e.point.series.name)
+            },
+            // legendItemClick: (e) => {
+            //   const {name, visible} = e.target
+            //   isSeriesVisible[name] = !visible // click 時の visibility なので反転して保存
+            // },
+            legendItemClick: (e) => {
+              isSeriesVisible = 0
+            },
+          },
+          pointStart: 0,
         }
       },
 
@@ -271,16 +284,24 @@
       }
     })
   }
+
+  function updateSeries() {
+    chart.update({series})
+  }
+
+  function onResize(e) {
+    chart.setSize(e.target.clientWidth)
+  }
 </script>
 
 <div id={chartId}
      class="chart"
      style="width: 100%"
+     bind:clientWidth={chartWidth}
      use:resize
-     on:resize={debounce(onResize, 300)}
+     on:resize={debounce(onResize, 100)}
      >
 </div>
-    <!-- bind:clientWidth={chartWidth}> -->
 
 <style>
   :global(.chart > .div) {
