@@ -97,6 +97,7 @@
         sim.setEnhancements(flatSelectedEnhancements(newEnhancementSet))
 
         const levelDiff = parseInt(s.metadata.level) - parseInt(currentLevel ?? '0')
+        // if (SKILL_EVALUATION_MAP[name]?.[levelDiff] == null) {console.log(`${name}:${levelDiff} is not found`)}
         return [{
           name: `Lv${s.metadata.level} (+${levelDiff})`,
           x: SKILL_EVALUATION_MAP[name]?.[levelDiff] ?? (2 * levelDiff),
