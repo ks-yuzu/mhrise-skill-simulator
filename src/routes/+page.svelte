@@ -118,6 +118,20 @@
     return Object.values(selectedEnhancements).flat().filter(i => !!i)
   }
 
+  function setSkill(skill: string, level: string) {
+    // console.log(`set ${skill} to ${level}`)
+
+    const skills = ENHANCEMENTS_MAP.get('skills')
+    const skillIndex = skills.findIndex(i => i[0].metadata.name === skill)
+    if (skillIndex < 0) { return }
+
+    const skillValue = skills[skillIndex].find(i => i.metadata.level === level)
+    if (skillValue == null) {
+      console.log(`failed to get skill details`); return
+    }
+
+    selectedEnhancements.skills[skillIndex] = skillValue
+  }
 </script>
 
 <div>
@@ -223,7 +237,7 @@
                   onClick={(x, y, pointName, seriesName) => {
                     const skill = seriesName
                     const level = pointName.replace(/Lv(\w)\s+\(.*\)/, '$1')
-                    console.log({skill, level})
+                    setSkill(skill, level)
                   }}
                   />
     </Card>
