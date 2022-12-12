@@ -105,7 +105,7 @@
         }]
       })
       if (data.length > 0) { // series が減ると末尾に古いものが残るので, 点が無くてもスキップはしない
-        data.unshift({name: `Lv${currentLevel}`, y: expectedDamageInReal})
+        data.unshift({name: `Lv${currentLevel}`, x: 0, y: expectedDamageInReal})
       }
 
       serieses.push({
@@ -239,7 +239,7 @@
 
     <Card style="width: calc(100% - 34rem); min-width: 600px; overflow: hidden">
       <Highcharts series={graphData}
-                  onClick={(x, y, pointName, seriesName) => {
+                  onClick={(_x, _y, pointName, seriesName) => {
                     const skill = seriesName
                     const level = pointName.replace(/Lv(\w)\s+\(.*\)/, '$1')
                     setSkill(skill, level)
