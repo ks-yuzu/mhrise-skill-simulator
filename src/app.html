@@ -3,7 +3,7 @@
 	<head>
 		<meta charset="utf-8" />
 		<link rel="icon" href="%sveltekit.assets%/favicon.png" />
-		<meta name="viewport" content="width=device-width" />
+		<meta name="viewport" content="width=680px" />
 		%sveltekit.head%
 
     <!-- Material Icons -->
@@ -25,7 +25,10 @@
           media="screen and (prefers-color-scheme: dark)"
           />
     <style>
-      html {font-size: 0.9rem;}
+      html {
+        min-width: 680px;
+        font-size: 0.9rem;
+      }
       ::-webkit-scrollbar {
         width: 0.5rem;
         background: transparent;
