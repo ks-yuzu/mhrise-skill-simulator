@@ -21,6 +21,7 @@
   import {damageExpGraphSettings}   from '$lib/graph-settings'
   import {BLADEMASTER_WEAPON_TYPES} from '$lib/mhrise-metadata'
   import {SKILL_EVALUATION_MAP}     from '$lib/mhrise-decorations'
+  import {isSeriesVisible}          from '$lib/store'
 
   let weaponType = '弓'
   let ENHANCEMENTS_MAP = getEnhancementMap(weaponType)
@@ -110,7 +111,7 @@
         type: 'line' as 'line',
         name,
         data,
-        visible: damageExpGraphSettings.isEnabledByDefault[name] ?? true,
+        visible: $isSeriesVisible[name] ?? damageExpGraphSettings.isEnabledByDefault[name] ?? true,
       })
     }
 

@@ -4,6 +4,7 @@
   import * as Highcharts        from 'highcharts'
   // https://api.highcharts.com/highcharts/
   import resize                 from '$lib/resize'
+  import {isSeriesVisible}      from '$lib/store'
 
   export let chartId: string              = 'chart'
   // export let series:  Highcharts.Series[] = []
@@ -12,8 +13,6 @@
 
   let chart:      Highcharts.Chart | null
   let chartWidth: number
-  let isSeriesVisible
-      : {[key: string]: boolean} = {}
 
   onMount(() => init())
   afterUpdate(() => {
@@ -257,12 +256,11 @@
             },
             legendItemClick: (e) => {
               const {name, visible} = e.target
-              isSeriesVisible[name] = !visible // click 時の visibility なので反転して保存
-              console.log({isSeriesVisible})
+              isSeriesVisible.update(v => {
+                v[name] = !visible // click 時の visibility なので反転して保存
+                return v
+              })
             },
-            // legendItemClick: (e) => {
-            //   isSeriesVisible = 0
-            // },
           },
           pointStart: 0,
         }
