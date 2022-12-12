@@ -16,7 +16,7 @@
 		"smui-theme-light": "smui-theme compile static/smui.css -i src/theme",
 		"smui-theme-dark": "smui-theme compile static/smui-dark.css -i src/theme/dark",
 		"build:watch": "inotifywait -e CLOSE_WRITE -m ./src/routes -m ./src/lib --format '%w%f' | while read file; do echo detect update of ${file}; npm run build; done",
-    "prepare-release": "touch docs/.nojekyll; echo mhrise-skill-simulator.yuzu-k.com > docs/CNAME"
+		"prepare-release": "touch docs/.nojekyll; echo mhrise-skill-simulator.yuzu-k.com > docs/CNAME"
 	},
 	"devDependencies": {
 		"@material/elevation": "^14.0.0",
