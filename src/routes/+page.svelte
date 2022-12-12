@@ -58,7 +58,7 @@
     }
     return tmp
   }
-  let currentEnhancements = []
+  let currentEnhancements: Enhancement[] = []
 
   const simulationParams = {
     weapon:                {attack: 330, element: 42, affinity: 0},
@@ -72,7 +72,7 @@
   // Enhancement 以外の更新
   $: sim = new DamageSimulator(simulationParams)
   $: { // Enhancement の更新
-    currentEnhancements = Object.values(selectedEnhancements).flat().filter(i => !!i)
+    currentEnhancements = flattenSelectedEnhancements(selectedEnhancements)
     sim.setEnhancements(currentEnhancements)
     expectedDamage = sim.calc()
     sim = sim
@@ -95,7 +95,7 @@
 
         const newEnhancementSet = _.cloneDeep(selectedEnhancements)
         newEnhancementSet.skills[skillIdx] = s
-        sim.setEnhancements(flatSelectedEnhancements(newEnhancementSet))
+        sim.setEnhancements(flattenSelectedEnhancements(newEnhancementSet))
 
         const levelDiff = parseInt(s.metadata.level) - parseInt(currentLevel ?? '0')
         // if (SKILL_EVALUATION_MAP[name]?.[levelDiff] == null) {console.log(`${name}:${levelDiff} is not found`)}
@@ -120,8 +120,8 @@
     graphData = serieses
   }
 
-  function flatSelectedEnhancements(selectedEnhancements: {[key: string]: (Enhancement|null)[]}) {
-    return Object.values(selectedEnhancements).flat().filter(i => !!i)
+  function flattenSelectedEnhancements(selectedEnhancements: {[key: string]: (Enhancement|null)[]}) {
+    return Object.values(selectedEnhancements).flat().filter(i => !!i) as Enhancement[]
   }
 
   function setSkill(skill: string, level: string) {
