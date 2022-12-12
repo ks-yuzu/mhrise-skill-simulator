@@ -5,7 +5,7 @@
   import EnhancementCheckbox from '$lib/EnhancementCheckbox.svelte'
 
   export let category:     string
-  export let enhancements: (Enhancement[] | Enhancement)[] | undefined
+  export let enhancements: Enhancement[][] | undefined
   export let value:        (Enhancement | null)[]
 
   export let style:         string                                         = ''
@@ -26,16 +26,16 @@
 
 <Card class="card--{category}" style={style}>
   {#each enhancements ?? [] as e, i}
-    {#if e.constructor.name === "Array"}
+    {#if e.length === 1 && e[0].metadata.level === '0'}
+      <EnhancementCheckbox style={getCheckboxStyle(e[0])}
+                           enhancement={e[0]}
+                           bind:value={value[i]}
+                           isChecked={!!value[i]}
+                           />
+    {:else}
       <EnhancementSelector style={getSelectorStyle(e)}
                            enhancements={e}
                            bind:value={value[i]}
-                           />
-    {:else}
-      <EnhancementCheckbox style={getCheckboxStyle(e)}
-                           enhancement={e}
-                           bind:value={value[i]}
-                           isChecked={!!value[i]}
                            />
     {/if}
   {/each}

@@ -22,17 +22,6 @@
   import {BLADEMASTER_WEAPON_TYPES} from '$lib/mhrise-metadata'
 
   let weaponType = '弓'
-  const enhancementReducer = (acc, cur) => {
-    if (cur.metadata.level === '0') {
-      acc.push(cur)
-    }
-    else {
-      const targetArray = acc.find(i => i[0]?.metadata?.name === cur.metadata.name)
-      if (targetArray != null) { targetArray.push(cur) }
-      else                     { acc.push([cur]) }
-    }
-    return acc
-  }
   let ENHANCEMENTS_MAP = getEnhancementMap(weaponType)
   $: {
     ENHANCEMENTS_MAP = getEnhancementMap(weaponType)
@@ -40,25 +29,30 @@
     simulationParams.sharpness = BLADEMASTER_WEAPON_TYPES.includes(weaponType) ? SHARPNESS.white : SHARPNESS.none
   }
   function getEnhancementMap(weaponType: string) {
-    return new Map<string, (Enhancement|Enhancement[])[]>([
-      ['items',              ITEMS              .filter(i => i.metadata.weaponFilter.length == 0 || i.metadata.weaponFilter.includes(weaponType)).reduce(enhancementReducer, [])],
-      ['dango',              DANGOS             .filter(i => i.metadata.weaponFilter.length == 0 || i.metadata.weaponFilter.includes(weaponType)).reduce(enhancementReducer, [])],
-      ['quriousCrafts',      QURIOUS_CRAFTS     .filter(i => i.metadata.weaponFilter.length == 0 || i.metadata.weaponFilter.includes(weaponType)).reduce(enhancementReducer, [])],
-      ['weapons',            WEAPONS            .filter(i => i.metadata.weaponFilter.length == 0 || i.metadata.weaponFilter.includes(weaponType)).reduce(enhancementReducer, [])],
-      ['skills',             SKILLS             .filter(i => i.metadata.weaponFilter.length == 0 || i.metadata.weaponFilter.includes(weaponType)).reduce(enhancementReducer, [])],
-      ['rampageDecorations', RAMPAGE_DECORATIONS.filter(i => i.metadata.weaponFilter.length == 0 || i.metadata.weaponFilter.includes(weaponType)).reduce(enhancementReducer, [])],
-      ['miscEnhancements',   MISC_ENHANCEMENTS  .filter(i => i.metadata.weaponFilter.length == 0 || i.metadata.weaponFilter.includes(weaponType)).reduce(enhancementReducer, [])],
+    const enhancementFilter = (i: Enhancement) => i.metadata.weaponFilter.length == 0 || i.metadata.weaponFilter.includes(weaponType)
+    const enhancementReducer = (acc: Enhancement[][], cur: Enhancement) => {
+      const targetArray = acc.find(i => i[0]?.metadata?.name === cur.metadata.name)
+      if (targetArray != null) { targetArray.push(cur) }
+      else                     { acc.push([cur]) }
+      return acc
+    }
+
+    return new Map<string, Enhancement[][]>([
+      ['items',              ITEMS              .filter(enhancementFilter).reduce(enhancementReducer, [])],
+      ['dango',              DANGOS             .filter(enhancementFilter).reduce(enhancementReducer, [])],
+      ['quriousCrafts',      QURIOUS_CRAFTS     .filter(enhancementFilter).reduce(enhancementReducer, [])],
+      ['weapons',            WEAPONS            .filter(enhancementFilter).reduce(enhancementReducer, [])],
+      ['skills',             SKILLS             .filter(enhancementFilter).reduce(enhancementReducer, [])],
+      ['rampageDecorations', RAMPAGE_DECORATIONS.filter(enhancementFilter).reduce(enhancementReducer, [])],
+      ['miscEnhancements',   MISC_ENHANCEMENTS  .filter(enhancementFilter).reduce(enhancementReducer, [])],
     ])
   }
 
-  let selectedEnhancements: {[key: string]: Enhancement[]} = getInitialSelectedEnhancements()
-  function getInitialSelectedEnhancements(): {[key: string]: Enhancement[]} {
-    const tmp = {}
+  let selectedEnhancements: {[key: string]: (Enhancement|null)[]} = getInitialSelectedEnhancements()
+  function getInitialSelectedEnhancements() {
+    const tmp: {[key: string]: (Enhancement|null)[]} = {}
     for (const category of [...ENHANCEMENTS_MAP.keys()]) {
-      tmp[category] = ENHANCEMENTS_MAP.get(category)?.map(e => {
-        if (e.constructor.name === "Array") { return e.find(i => i.metadata.isEnabledByDefault) }
-        else                                { return e.metadata?.isEnabledByDefault ? e : null }
-      })
+      tmp[category] = ENHANCEMENTS_MAP.get(category)?.map(e => e.find(i => i.metadata.isEnabledByDefault) ?? null) ?? []
     }
     return tmp
   }
@@ -92,27 +86,35 @@
       const currentLevel = selectedEnhancements.skills[skillIdx]?.metadata?.level
       const currentLevelIndex = currentLevel != null ? skills.findIndex(i => i.metadata.level === currentLevel) : -1
 
-      // const data = Object.entries(skills.slice(currentLevelIndex + 1)).map(([i, s]) => {
-      const data = skills.slice(currentLevelIndex + 1).map(s => {
-        if (isNaN(s.metadata.level)) { return }
+      const data = skills.slice(currentLevelIndex + 1).flatMap(s => {
+        if (isNaN(Number(s.metadata.level))) { return [] }
 
         const newEnhancementSet = _.cloneDeep(selectedEnhancements)
         newEnhancementSet.skills[skillIdx] = s
         sim.setEnhancements(flatSelectedEnhancements(newEnhancementSet))
 
-        return {name: `Lv${s.metadata.level} (+${parseInt(s.metadata.level) - parseInt(currentLevel ?? '0')})`, y: sim.calcInRealNumbers()}
+        return [{
+          name: `Lv${s.metadata.level} (+${parseInt(s.metadata.level) - parseInt(currentLevel ?? '0')})`,
+          y: sim.calcInRealNumbers()
+        }]
       })
       if (data.length > 0) { // series が減ると末尾に古いものが残るので, 点が無くてもスキップはしない
         data.unshift({name: `Lv${currentLevel}`, y: expectedDamageInReal})
       }
+
       const name = skills[0].metadata.name
-      serieses.push({name, data, visible: damageExpGraphSettings.isEnabledByDefault[name] ?? true})
+      serieses.push({
+        type: 'line' as 'line',
+        name,
+        data,
+        visible: damageExpGraphSettings.isEnabledByDefault[name] ?? true,
+      })
     }
 
     graphData = serieses
   }
 
-  function flatSelectedEnhancements(selectedEnhancements: {[key: string]: Enhancement[]}) {
+  function flatSelectedEnhancements(selectedEnhancements: {[key: string]: (Enhancement|null)[]}) {
     return Object.values(selectedEnhancements).flat().filter(i => !!i)
   }
 
@@ -218,7 +220,7 @@
 
     <Card style="width: calc(100% - 34rem); min-width: 600px; overflow: hidden">
       <Highcharts series={graphData}
-                  onClick={(x, {}={}, pointName, seriesName) => {
+                  onClick={(x, y, pointName, seriesName) => {
                     const skill = seriesName
                     const level = pointName.replace(/Lv(\w)\s+\(.*\)/, '$1')
                     console.log({skill, level})
