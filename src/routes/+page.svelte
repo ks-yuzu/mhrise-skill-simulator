@@ -20,6 +20,7 @@
   import EnhancementCard            from '$lib/EnhancementCard.svelte'
   import {damageExpGraphSettings}   from '$lib/graph-settings'
   import {BLADEMASTER_WEAPON_TYPES} from '$lib/mhrise-metadata'
+  import {SKILL_EVALUATION_MAP}     from '$lib/mhrise-decorations'
 
   let weaponType = '弓'
   let ENHANCEMENTS_MAP = getEnhancementMap(weaponType)
@@ -83,7 +84,8 @@
 
     const serieses = []
     for (const [skillIdx, skills] of ENHANCEMENTS_MAP.get('skills')?.entries() ?? []) {
-      const currentLevel = selectedEnhancements.skills[skillIdx]?.metadata?.level
+      const name              = skills[0].metadata.name
+      const currentLevel      = selectedEnhancements.skills[skillIdx]?.metadata?.level
       const currentLevelIndex = currentLevel != null ? skills.findIndex(i => i.metadata.level === currentLevel) : -1
 
       const data = skills.slice(currentLevelIndex + 1).flatMap(s => {
@@ -93,16 +95,17 @@
         newEnhancementSet.skills[skillIdx] = s
         sim.setEnhancements(flatSelectedEnhancements(newEnhancementSet))
 
+        const levelDiff = parseInt(s.metadata.level) - parseInt(currentLevel ?? '0')
         return [{
-          name: `Lv${s.metadata.level} (+${parseInt(s.metadata.level) - parseInt(currentLevel ?? '0')})`,
-          y: sim.calcInRealNumbers()
+          name: `Lv${s.metadata.level} (+${levelDiff})`,
+          x: SKILL_EVALUATION_MAP[name]?.[levelDiff] ?? (2 * levelDiff),
+          y: sim.calcInRealNumbers(),
         }]
       })
       if (data.length > 0) { // series が減ると末尾に古いものが残るので, 点が無くてもスキップはしない
         data.unshift({name: `Lv${currentLevel}`, y: expectedDamageInReal})
       }
 
-      const name = skills[0].metadata.name
       serieses.push({
         type: 'line' as 'line',
         name,

@@ -234,9 +234,10 @@
       xAxis: {
         allowDecimals: false,
         min: 0,
-        max: 7,
+        // max: 7,
         title: {
-          text: '追加スキル (Lv)',
+          // text: '追加スキル (Lv)',
+          text: '追加スキル (Lv × スロット)',
         },
       },
       legend: {
