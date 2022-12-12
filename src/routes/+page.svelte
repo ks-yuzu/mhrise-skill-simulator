@@ -81,6 +81,7 @@
 
   let graphData: Highcharts.SeriesLineOptions[] = []
   $: {
+    sim.setEnhancements(currentEnhancements)
     const expectedDamageInReal = sim.calcInRealNumbers()
 
     const serieses = []
