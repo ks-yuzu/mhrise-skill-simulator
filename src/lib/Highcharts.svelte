@@ -1,19 +1,19 @@
 <script lang="ts">
-  import {onMount, afterUpdate}   from "svelte"
-  import {debounce}      from 'lodash'
-  import * as Highcharts from 'highcharts'
+  import {onMount, afterUpdate} from "svelte"
+  import {debounce}             from 'lodash'
+  import * as Highcharts        from 'highcharts'
   // https://api.highcharts.com/highcharts/
-  import resize          from '$lib/resize'
+  import resize                 from '$lib/resize'
 
-  export let chartId: string                          = 'chart'
-  export let series: {name: string, data: number[]}[] = []
-  export let onClick: (x: number, y: number, pointName: string, seriesName: string) => void
+  export let chartId: string              = 'chart'
+  // export let series:  Highcharts.Series[] = []
+  export let series:  Highcharts.SeriesOptionsType[] = []
+  export let onClick: (x: number, y: number|undefined, pointName: string, seriesName: string) => void
 
-  let chart
-  let chartWidth
-  // let isSeriesVisible: {[key: string]: boolean} = {}
-  let isSeriesVisible: number
-  $: console.log({isSeriesVisible})
+  let chart:      Highcharts.Chart | null
+  let chartWidth: number
+  let isSeriesVisible
+      : {[key: string]: boolean} = {}
 
   onMount(() => init())
   afterUpdate(() => {
@@ -224,7 +224,7 @@
         width: chartWidth,
       },
       title: {
-        text: null,
+        text: undefined, // required to hide chart title
       },
       yAxis: {
         title: {
@@ -254,13 +254,14 @@
               console.log(e)
               onClick(e.point.x, e.point.y, e.point.name, e.point.series.name)
             },
-            // legendItemClick: (e) => {
-            //   const {name, visible} = e.target
-            //   isSeriesVisible[name] = !visible // click 時の visibility なので反転して保存
-            // },
             legendItemClick: (e) => {
-              isSeriesVisible = 0
+              const {name, visible} = e.target
+              isSeriesVisible[name] = !visible // click 時の visibility なので反転して保存
+              console.log({isSeriesVisible})
             },
+            // legendItemClick: (e) => {
+            //   isSeriesVisible = 0
+            // },
           },
           pointStart: 0,
         }
@@ -286,11 +287,12 @@
   }
 
   function updateSeries() {
-    chart.update({series})
+    chart?.update({series})
   }
 
-  function onResize(e) {
-    chart.setSize(e.target.clientWidth)
+  function onResize(e: Event) {
+    const width = (e.target as HTMLElement)?.clientWidth
+    if (width) { chart?.setSize(width) }
   }
 </script>
 

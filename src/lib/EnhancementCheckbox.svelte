@@ -18,21 +18,22 @@
 
 
 <script lang="ts">
-  import Button, { Label } from '@smui/button'
+  import Button, {Label}  from '@smui/button'
+  import type Enhancement from 'mhrise-damage-simulator/enhancement'
 
-  export let style
+  export let style = ''
 
-  export let enhancement
-  export let value
+  export let enhancement: Enhancement
+  export let value:       Enhancement | null
 
-  export let isChecked = value
+  export let isChecked: boolean = !!value
   $: value = isChecked ? enhancement : null
 </script>
 
 
-<Button color={isChecked ? "" : "secondary"}
+<Button color={isChecked ? undefined : "secondary"}
         on:click={() => {isChecked = !isChecked}}
-        style={style}
+        {style}
         >
   <Label>{enhancement.metadata.name}</Label>
 </Button>

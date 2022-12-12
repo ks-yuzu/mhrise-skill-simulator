@@ -1,28 +1,25 @@
 <script lang="ts">
-  import _                         from 'lodash'
-  import Card                      from '@smui/card'
-  import Textfield                 from '@smui/textfield'
-  import Select, {Option}          from '@smui/select'
+  import _                          from 'lodash'
+  import Card                       from '@smui/card'
+  import Textfield                  from '@smui/textfield'
+  import Select, {Option}           from '@smui/select'
 
-  import DamageSimulator           from 'mhrise-damage-simulator'
-  import Enhancement               from 'mhrise-damage-simulator/enhancement'
-  import {ITEMS}                   from 'mhrise-damage-simulator/enhancement/item'
-  import {DANGOS}                  from 'mhrise-damage-simulator/enhancement/dango'
-  import {SKILLS}                  from 'mhrise-damage-simulator/enhancement/skill'
-  import {WEAPONS}                 from 'mhrise-damage-simulator/enhancement/weapon'
-  import {QURIOUS_CRAFTS}          from 'mhrise-damage-simulator/enhancement/qurious-craft'
-  import {RAMPAGE_DECORATIONS}     from 'mhrise-damage-simulator/enhancement/rampage-decoration'
-  import {MISC_ENHANCEMENTS}       from 'mhrise-damage-simulator/enhancement/misc-enhancement'
-  import {SHARPNESS, SHARPNESS_JP} from 'mhrise-damage-simulator/sharpness'
+  import DamageSimulator            from 'mhrise-damage-simulator'
+  import type Enhancement           from 'mhrise-damage-simulator/enhancement'
+  import {ITEMS}                    from 'mhrise-damage-simulator/enhancement/item'
+  import {DANGOS}                   from 'mhrise-damage-simulator/enhancement/dango'
+  import {SKILLS}                   from 'mhrise-damage-simulator/enhancement/skill'
+  import {WEAPONS}                  from 'mhrise-damage-simulator/enhancement/weapon'
+  import {QURIOUS_CRAFTS}           from 'mhrise-damage-simulator/enhancement/qurious-craft'
+  import {RAMPAGE_DECORATIONS}      from 'mhrise-damage-simulator/enhancement/rampage-decoration'
+  import {MISC_ENHANCEMENTS}        from 'mhrise-damage-simulator/enhancement/misc-enhancement'
+  import {SHARPNESS, SHARPNESS_JP}  from 'mhrise-damage-simulator/sharpness'
 
-  import Highcharts                from '$lib/Highcharts.svelte'
-  import EnhancementCard           from '$lib/EnhancementCard.svelte'
-  import EnhancementSelector       from '$lib/EnhancementSelector.svelte'
-  import EnhancementCheckbox       from '$lib/EnhancementCheckbox.svelte'
-  import WeaponTypeSelector        from '$lib/WeaponTypeSelector.svelte'
-  import {damageExpGraphSettings}  from '$lib/graph-settings'
-  import {BLADEMASTER_WEAPON_TYPES, GUNNER_WEAPON_TYPES}
-                                   from '$lib/mhrise-metadata'
+  import Highcharts                 from '$lib/Highcharts.svelte'
+  import WeaponTypeSelector         from '$lib/WeaponTypeSelector.svelte'
+  import EnhancementCard            from '$lib/EnhancementCard.svelte'
+  import {damageExpGraphSettings}   from '$lib/graph-settings'
+  import {BLADEMASTER_WEAPON_TYPES} from '$lib/mhrise-metadata'
 
   let weaponType = '弓'
   const enhancementReducer = (acc, cur) => {
@@ -43,7 +40,7 @@
     simulationParams.sharpness = BLADEMASTER_WEAPON_TYPES.includes(weaponType) ? SHARPNESS.white : SHARPNESS.none
   }
   function getEnhancementMap(weaponType: string) {
-    return new Map([
+    return new Map<string, (Enhancement|Enhancement[])[]>([
       ['items',              ITEMS              .filter(i => i.metadata.weaponFilter.length == 0 || i.metadata.weaponFilter.includes(weaponType)).reduce(enhancementReducer, [])],
       ['dango',              DANGOS             .filter(i => i.metadata.weaponFilter.length == 0 || i.metadata.weaponFilter.includes(weaponType)).reduce(enhancementReducer, [])],
       ['quriousCrafts',      QURIOUS_CRAFTS     .filter(i => i.metadata.weaponFilter.length == 0 || i.metadata.weaponFilter.includes(weaponType)).reduce(enhancementReducer, [])],
@@ -55,10 +52,10 @@
   }
 
   let selectedEnhancements: {[key: string]: Enhancement[]} = getInitialSelectedEnhancements()
-  function getInitialSelectedEnhancements() {
+  function getInitialSelectedEnhancements(): {[key: string]: Enhancement[]} {
     const tmp = {}
     for (const category of [...ENHANCEMENTS_MAP.keys()]) {
-      tmp[category] = ENHANCEMENTS_MAP.get(category).map(e => {
+      tmp[category] = ENHANCEMENTS_MAP.get(category)?.map(e => {
         if (e.constructor.name === "Array") { return e.find(i => i.metadata.isEnabledByDefault) }
         else                                { return e.metadata?.isEnabledByDefault ? e : null }
       })
@@ -74,8 +71,8 @@
     enhancements:          [],
     monsterPartMultiplier: {physical: 55, elemental: 25},
   }
-  let sim
-  let expectedDamage = 0
+  let sim: DamageSimulator = null
+  let expectedDamage       = 0
   // Enhancement 以外の更新
   $: sim = new DamageSimulator(simulationParams)
   $: { // Enhancement の更新
@@ -86,16 +83,17 @@
   }
   $: console.log({selectedEnhancements})
 
-  let graphData = []
+  let graphData: Highcharts.SeriesLineOptions[] = []
   $: {
     const expectedDamageInReal = sim.calcInRealNumbers()
 
     const serieses = []
-    for (const [skillIdx, skills] of ENHANCEMENTS_MAP.get('skills').entries()) {
+    for (const [skillIdx, skills] of ENHANCEMENTS_MAP.get('skills')?.entries() ?? []) {
       const currentLevel = selectedEnhancements.skills[skillIdx]?.metadata?.level
       const currentLevelIndex = currentLevel != null ? skills.findIndex(i => i.metadata.level === currentLevel) : -1
 
-      const data = Object.entries(skills.slice(currentLevelIndex + 1)).map(([i, s]) => {
+      // const data = Object.entries(skills.slice(currentLevelIndex + 1)).map(([i, s]) => {
+      const data = skills.slice(currentLevelIndex + 1).map(s => {
         if (isNaN(s.metadata.level)) { return }
 
         const newEnhancementSet = _.cloneDeep(selectedEnhancements)
@@ -104,11 +102,11 @@
 
         return {name: `Lv${s.metadata.level} (+${parseInt(s.metadata.level) - parseInt(currentLevel ?? '0')})`, y: sim.calcInRealNumbers()}
       })
-      if (data.length > 0) {
+      if (data.length > 0) { // series が減ると末尾に古いものが残るので, 点が無くてもスキップはしない
         data.unshift({name: `Lv${currentLevel}`, y: expectedDamageInReal})
-        const name = skills[0].metadata.name
-        serieses.push({name, data, visible: damageExpGraphSettings.isEnabledByDefault[name] ?? true})
       }
+      const name = skills[0].metadata.name
+      serieses.push({name, data, visible: damageExpGraphSettings.isEnabledByDefault[name] ?? true})
     }
 
     graphData = serieses
@@ -220,7 +218,7 @@
 
     <Card style="width: calc(100% - 34rem); min-width: 600px; overflow: hidden">
       <Highcharts series={graphData}
-                  onClick={(x, y, pointName, seriesName) => {
+                  onClick={(x, {}={}, pointName, seriesName) => {
                     const skill = seriesName
                     const level = pointName.replace(/Lv(\w)\s+\(.*\)/, '$1')
                     console.log({skill, level})
@@ -242,7 +240,7 @@
   }
 
   div.wrappable-flex {
-    display: flex;
+    display:   flex;
     flex-flow: wrap;
   }
   :global(div.wrappable-flex > div:first-of-type) {
@@ -272,10 +270,10 @@
   }
 
   :global(.mdc-text-field:has(> input:not(:placeholder-shown)) > .mdc-line-ripple::before) {
-    border-bottom-color: #ff440088; /*white;*/
+    border-bottom-color: #ff440088;
   }
   :global(.mdc-select > .mdc-select__anchor:has(.mdc-select__selected-text:not(:empty)) > .mdc-line-ripple::before) {
-    border-bottom-color: #ff440088; /*white;*/
+    border-bottom-color: #ff440088;
   }
   /* :global(.mdc-select > .mdc-select__anchor:has(.mdc-select__selected-text:not(:empty)) > label) { */
   /*   color: white; */

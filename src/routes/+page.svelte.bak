@@ -1,0 +1,217 @@
+<script lang="ts">
+  import Card             from '@smui/card'
+  import Textfield        from '@smui/textfield'
+  import Select, {Option} from '@smui/select'
+  import Button           from '@smui/button'
+
+  import DamageSimulator                               from 'mhrise-damage-simulator'
+  import Enhancement                                   from 'mhrise-damage-simulator/enhancement'
+  import {ITEMS               as _ITEMS}               from 'mhrise-damage-simulator/enhancement/item'
+  import {DANGOS              as _DANGOS}              from 'mhrise-damage-simulator/enhancement/dango'
+  import {SKILLS              as _SKILLS}              from 'mhrise-damage-simulator/enhancement/skill'
+  import {WEAPONS             as _WEAPONS}             from 'mhrise-damage-simulator/enhancement/weapon'
+  import {QURIOUS_CRAFTS      as _QURIOUS_CRAFTS}      from 'mhrise-damage-simulator/enhancement/qurious-craft'
+  import {RAMPAGE_DECORATIONS as _RAMPAGE_DECORATIONS} from 'mhrise-damage-simulator/enhancement/rampage-decoration'
+  import {MISC_ENHANCEMENTS   as _MISC_ENHANCEMENTS}   from 'mhrise-damage-simulator/enhancement/misc-enhancement'
+  import {SHARPNESS, SHARPNESS_JP}                     from 'mhrise-damage-simulator/sharpness'
+
+  import EnhancementCard     from '$lib/EnhancementCard.svelte'
+  import EnhancementSelector from '$lib/EnhancementSelector.svelte'
+  import EnhancementCheckbox from '$lib/EnhancementCheckbox.svelte'
+
+  const enhancementReducer = (acc, cur) => {
+    if (cur.metadata.level === '0') {
+      acc.push(cur)
+    }
+    else {
+      const targetArray = acc.find(i => i[0]?.metadata?.name === cur.metadata.name)
+      if (targetArray != null) { targetArray.push(cur) }
+      else                     { acc.push([cur]) }
+    }
+    return acc
+  }
+  const ENHANCEMENTS_MAP = new Map([
+    ['items',              _ITEMS              .filter(i => i.metadata.weaponFilter.length == 0 || i.metadata.weaponFilter.includes('弓')).reduce(enhancementReducer, [])],
+    ['dango',              _DANGOS             .filter(i => i.metadata.weaponFilter.length == 0 || i.metadata.weaponFilter.includes('弓')).reduce(enhancementReducer, [])],
+    ['quriousCrafts',      _QURIOUS_CRAFTS     .filter(i => i.metadata.weaponFilter.length == 0 || i.metadata.weaponFilter.includes('弓')).reduce(enhancementReducer, [])],
+    ['weapons',            _WEAPONS            .filter(i => i.metadata.weaponFilter.length == 0 || i.metadata.weaponFilter.includes('弓')).reduce(enhancementReducer, [])],
+    ['skills',             _SKILLS             .filter(i => i.metadata.weaponFilter.length == 0 || i.metadata.weaponFilter.includes('弓')).reduce(enhancementReducer, [])],
+    ['rampageDecorations', _RAMPAGE_DECORATIONS.filter(i => i.metadata.weaponFilter.length == 0 || i.metadata.weaponFilter.includes('弓')).reduce(enhancementReducer, [])],
+    ['miscEnhancements',   _MISC_ENHANCEMENTS  .filter(i => i.metadata.weaponFilter.length == 0 || i.metadata.weaponFilter.includes('弓')).reduce(enhancementReducer, [])],
+  ])
+  // let   enabledEnhancements = ['力の護符', '力の爪'].map(n => _ITEMS.find(b => b.metadata.name === n)).filter(i => i != null)
+  const selectedEnhancements: {[key: string]: Enhancement[]} = (() => {
+    const tmp = {}
+    for (const category of [...ENHANCEMENTS_MAP.keys()]) {
+      tmp[category] = ENHANCEMENTS_MAP.get(category).map(e => {
+        if (e.constructor.name === "Array") { return e.find(i => i.metadata.isEnabledByDefault) }
+        else                                { return e.metadata?.isEnabledByDefault ? e : null }
+      })
+    }
+    return tmp
+  })()
+  let currentEnhancements = []
+
+  const simulationParams = {
+    weapon: {attack: 330, element: 42},
+    sharpness: SHARPNESS.none,
+    motion: {
+      motionValue:     10,
+      elementModifier: 1,
+    },
+    enhancements: [],
+    monsterPartMultiplier: {physical: 55, elemental: 25},
+  }
+  let sim
+  let expectedDamage = 0
+  $: {
+    currentEnhancements = [
+      // ...enabledEnhancements,
+      ...Object.values(selectedEnhancements).flat().filter(i => !!i)
+    ]
+    console.log({currentEnhancements})
+    const input = Object.assign({}, simulationParams, {enhancements: currentEnhancements})
+    console.log({input})
+    // expectedDamage = new DamageSimulator(input).calcDamage()
+    sim = new DamageSimulator(input)
+    expectedDamage = sim.calc()
+  }
+  // $: {console.log({enabledEnhancements})}
+  $: {console.log({selectedEnhancements})}
+</script>
+
+<div>
+  <div style="display: flex; flex-flow: nowrap;">
+    <Card>
+      <div id="variable-area">
+        <div>
+          <Textfield style="width: 7rem" label="攻撃力" bind:value={simulationParams.weapon.attack}  variant="filled" />
+          <Textfield style="width: 7rem" label="属性"   bind:value={simulationParams.weapon.element} variant="filled" />
+          <Select    style="width: 7rem" label="切れ味" bind:value={simulationParams.sharpness}      variant="filled">
+            {#each Object.keys(SHARPNESS_JP) as name}
+              <Option value={name}>{SHARPNESS_JP[name]}</Option>
+            {/each}
+          </Select>
+        </div>
+
+        <div>
+          <Textfield style="width: 7rem" label="モーション値"       bind:value={simulationParams.motion.motionValue}     variant="filled" />
+          <Textfield style="width: 7rem" label="モーション属性補正" bind:value={simulationParams.motion.elementModifier} variant="filled" />
+        </div>
+
+        <div>
+          <Textfield style="width: 7rem" label="物理肉質" bind:value={simulationParams.monsterPartMultiplier.physical}  variant="filled" />
+          <Textfield style="width: 7rem" label="属性肉質" bind:value={simulationParams.monsterPartMultiplier.elemental} variant="filled" />
+        </div>
+
+        <div>
+          <Textfield style="width: 7rem" label="物理ダメージ" value={sim.physicalDamage}  variant="filled" /> +
+          <Textfield style="width: 7rem" label="属性ダメージ" value={sim.elementalDamage} variant="filled" /> =
+          <Textfield style="width: 7rem" label="合計ダメージ" value={expectedDamage}      variant="filled" />
+        </div>
+      </div>
+    </Card>
+
+    <Card style="flex-grow: 1;"></Card>
+  </div>
+
+  <div style="display: flex; flex-flow: wrap;">
+    {#each ['items'] as category}
+    <Card class="card--{category}" style="flex-grow: 1;">
+      {#each ENHANCEMENTS_MAP.get(category) as enhancements, i}
+        {#if enhancements.constructor.name === "Array"}
+          <EnhancementSelector style="width: 8rem"
+                               enhancements={enhancements}
+                               bind:value={selectedEnhancements[category][i]}
+                               />
+        {:else}
+          <EnhancementCheckbox style={enhancements.metadata.name.length >= 7 ? "" : "width: 7rem"}
+                               enhancement={enhancements}
+                               bind:value={selectedEnhancements[category][i]}
+                               isChecked={!!selectedEnhancements[category][i]}
+                               />
+        {/if}
+      {/each}
+    </Card>
+    {/each}
+    {#each ['weapons'] as category}
+    <!-- <Card class="card--{category}" style="flex-grow: 1000;"> -->
+    <!--   {#each ENHANCEMENTS_MAP.get(category) as enhancements, i} -->
+    <!--     {#if enhancements.constructor.name === "Array"} -->
+    <!--       <EnhancementSelector style="width: 8rem" -->
+    <!--                            enhancements={enhancements} -->
+    <!--                            bind:value={selectedEnhancements[category][i]} -->
+    <!--                            /> -->
+    <!--     {:else} -->
+    <!--       <EnhancementCheckbox style="width: 8rem" -->
+    <!--                            enhancement={enhancements} -->
+    <!--                            bind:value={selectedEnhancements[category][i]} -->
+    <!--                            isChecked={!!selectedEnhancements[category][i]} -->
+    <!--                            /> -->
+    <!--     {/if} -->
+    <!--   {/each} -->
+    <!-- </Card> -->
+    <EnhancementCard category="weapons"
+                     enhancements={ENHANCEMENTS_MAP.get('weapons')}
+                     bind:value={selectedEnhancements[category]}
+                     style="flex-grow: 1000;"
+                     selectorWidth="8rem"
+                     checkboxWidth="8rem"
+                     />
+    {/each}
+  </div>
+
+
+  {#each ['dango', 'quriousCrafts', 'skills', 'rampageDecorations', 'miscEnhancements'] as category}
+    <Card>
+    {#each ENHANCEMENTS_MAP.get(category) as enhancements, i}
+      {#if enhancements.constructor.name === "Array"}
+        <EnhancementSelector enhancements={enhancements}
+                             bind:value={selectedEnhancements[category][i]}
+                             />
+      {:else}
+        <EnhancementCheckbox enhancement={enhancements}
+                             bind:value={selectedEnhancements[category][i]}
+                             isChecked={!!selectedEnhancements[category][i]}
+                             />
+      {/if}
+    {/each}
+    </Card>
+  {/each}
+</div>
+
+<pre class="status">Selected: {currentEnhancements.map(i => `${i.metadata.name}${i.metadata.level !== '0' ? ':'+i.metadata.level : ''}`).join(', ')}</pre>
+
+<style>
+  #variable-area > div:nth-of-type(n+2) {
+    margin-top: 0.5rem;
+  }
+  #variable-area > div:last-of-type {
+    margin-top: 1rem;
+  }
+
+  :global(.mdc-card.card--items, .mdc-card.card--weapons) {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+  }
+  :global(.mdc-card.card--items, .mdc-card.card--weapons > .mdc-select:nth-child(n+2)) {
+    margin-left: 0.3rem;
+  }
+
+  :global(.mdc-card) {
+    display: block;
+    margin: 0.5rem;
+    padding: 0.5rem;
+  }
+
+  :global(.mdc-text-field:has(> input:not(:placeholder-shown)) > .mdc-line-ripple::before) {
+    border-bottom-color: #ff440088; /*white;*/
+  }
+  :global(.mdc-select > .mdc-select__anchor:has(.mdc-select__selected-text:not(:empty)) > .mdc-line-ripple::before) {
+    border-bottom-color: #ff440088; /*white;*/
+  }
+  /* :global(.mdc-select > .mdc-select__anchor:has(.mdc-select__selected-text:not(:empty)) > label) { */
+  /*   color: white; */
+  /* } */
+</style>

@@ -1,4 +1,8 @@
-export const damageExpGraphSettings = {
+interface DamageExpGraphSettings {
+  isEnabledByDefault: {[key: string]: boolean}
+}
+
+export const damageExpGraphSettings: DamageExpGraphSettings = {
   isEnabledByDefault: {
     '挑戦者':                 false,
     'フルチャージ':           false,
