@@ -271,7 +271,7 @@
     padding: 0.5rem;
   }
 
-  :global(.mdc-text-field:has(> input:not(:placeholder-shown)) > .mdc-line-ripple::before) {
+  :global(.mdc-text-field:has(input:not(:placeholder-shown)) > .mdc-line-ripple::before) {
     border-bottom-color: #ff440088;
   }
   :global(.mdc-select > .mdc-select__anchor:has(.mdc-select__selected-text:not(:empty)) > .mdc-line-ripple::before) {
