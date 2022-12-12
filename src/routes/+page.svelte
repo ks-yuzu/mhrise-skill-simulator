@@ -1,4 +1,5 @@
 <script lang="ts">
+  import {tick}                     from 'svelte'
   import _                          from 'lodash'
   import Card                       from '@smui/card'
   import Textfield                  from '@smui/textfield'
@@ -27,8 +28,10 @@
   let ENHANCEMENTS_MAP = getEnhancementMap(weaponType)
   $: {
     ENHANCEMENTS_MAP = getEnhancementMap(weaponType)
-    selectedEnhancements = getInitialSelectedEnhancements()
-    simulationParams.sharpness = BLADEMASTER_WEAPON_TYPES.includes(weaponType) ? SHARPNESS.white : SHARPNESS.none
+    tick().then(() => {
+      selectedEnhancements = getInitialSelectedEnhancements()
+      simulationParams.sharpness = BLADEMASTER_WEAPON_TYPES.includes(weaponType) ? SHARPNESS.white : SHARPNESS.none
+    })
   }
   function getEnhancementMap(weaponType: string) {
     const enhancementFilter = (i: Enhancement) => i.metadata.weaponFilter.length == 0 || i.metadata.weaponFilter.includes(weaponType)
