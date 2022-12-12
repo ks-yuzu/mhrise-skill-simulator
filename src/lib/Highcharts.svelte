@@ -1,6 +1,6 @@
 <script lang="ts">
   import {onMount, afterUpdate} from "svelte"
-  import {debounce}             from 'lodash'
+  import _, {debounce}          from 'lodash'
   import * as Highcharts        from 'highcharts'
   // https://api.highcharts.com/highcharts/
   import resize                 from '$lib/resize'
@@ -15,8 +15,9 @@
 
   onMount(() => init())
   afterUpdate(() => {
-    if (chart == null) { draw() }
-    else               { updateSeries() }
+    if      (chart == null)                                                { draw() }
+    else if (_.differenceBy(chart.series, series, s => s.name).length > 0) { draw() }
+    else                                                                   { updateSeries() }
   })
 
   function init() {
