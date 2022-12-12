@@ -7,7 +7,6 @@
   import {isSeriesVisible}      from '$lib/store'
 
   export let chartId: string              = 'chart'
-  // export let series:  Highcharts.Series[] = []
   export let series:  Highcharts.SeriesOptionsType[] = []
   export let onClick: (x: number, y: number|undefined, pointName: string, seriesName: string) => void
 
@@ -291,13 +290,14 @@
 
   function onResize(e: Event) {
     const width = (e.target as HTMLElement)?.clientWidth
-    if (width) { chart?.setSize(width) }
+    const height = (e.target as HTMLElement)?.clientHeight
+    if (width) { chart?.setSize(width, height) }
   }
 </script>
 
 <div id={chartId}
      class="chart"
-     style="width: 100%"
+     style="width: 100%; height: 100%;"
      bind:clientWidth={chartWidth}
      use:resize
      on:resize={debounce(onResize, 100)}
@@ -306,6 +306,7 @@
 
 <style>
   :global(.chart > .div) {
-    width: 100% !important;
+    width:  100% !important;
+    height: 100% !important;
   }
 </style>

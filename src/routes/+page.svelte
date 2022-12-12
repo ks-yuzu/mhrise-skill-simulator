@@ -193,7 +193,7 @@
   </div>
 
   <div class="wrappable-flex">
-    <Card style="min-width: 26rem;">
+    <Card style="flex-direction: column; min-width: 26rem;">
       <div id="variable-area">
         <div>
           <Textfield style="width: 7rem" label="攻撃力"     type="number" bind:value={simulationParams.weapon.attack}   variant="filled" />
@@ -237,7 +237,7 @@
       </div>
     </Card>
 
-    <Card style="width: calc(100% - 34rem); min-width: 600px; overflow: hidden">
+    <Card style="width: calc(100% - 34rem); min-width: 600px; min-height: 40rem; overflow: hidden">
       <Highcharts series={graphData}
                   onClick={(_x, _y, pointName, seriesName) => {
                     const skill = seriesName
