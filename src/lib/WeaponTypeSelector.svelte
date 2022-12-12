@@ -15,3 +15,9 @@
     <Option value={weaponType}>{weaponType}</Option>
   {/each}
 </Select>
+
+<style>
+  :global(.mdc-select__menu) {
+    width: 13rem
+  }
+</style>
